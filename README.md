@@ -1,1 +1,1 @@
-# coursera_go
+# Some code on GoLang from Coursera course
