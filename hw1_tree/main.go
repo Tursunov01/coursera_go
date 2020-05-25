@@ -26,7 +26,7 @@ type Directory struct {
 
 func (file File) String() string {
 	if file.size == 0 {
-		return file.name + "(empty)"
+		return file.name + " (empty)"
 	}
 	return file.name + " (" + strconv.FormatInt(file.size, 10) + "b)"
 }
@@ -35,9 +35,12 @@ func (directory Directory) String() string {
 	return directory.name
 }
 
-func readDir(path string, nodes []Node, withFiles bool) (error, []Node) {
+func readDir(path string, nodes []Node, withFiles bool) ([]Node, error) {
 	file, err := os.Open(path)
 	files, err := file.Readdir(0)
+	if err != nil {
+		return nil, err
+	}
 	file.Close()
 
 	sort.Slice(files, func(i, j int) bool {
@@ -51,7 +54,7 @@ func readDir(path string, nodes []Node, withFiles bool) (error, []Node) {
 
 		var newNode Node
 		if info.IsDir() {
-			_, children := readDir(filepath.Join(path, info.Name()), []Node{}, withFiles)
+			children, _ := readDir(filepath.Join(path, info.Name()), []Node{}, withFiles)
 			newNode = Directory{info.Name(), children}
 		} else {
 			newNode = File{info.Name(), info.Size()}
@@ -60,7 +63,7 @@ func readDir(path string, nodes []Node, withFiles bool) (error, []Node) {
 		nodes = append(nodes, newNode)
 	}
 
-	return err, nodes
+	return nodes, err
 }
 
 func printDir(out io.Writer, nodes []Node, prefixes []string) {
@@ -68,7 +71,7 @@ func printDir(out io.Writer, nodes []Node, prefixes []string) {
 		return
 	}
 
-	fmt.Fprintf(out, "%s", strings.Join(prefixes, ""))
+	out.Write([]byte(strings.Join(prefixes, "")))
 
 	node := nodes[0]
 
@@ -89,7 +92,7 @@ func printDir(out io.Writer, nodes []Node, prefixes []string) {
 }
 
 func dirTree(out io.Writer, path string, printFiles bool) error {
-	err, nodes := readDir(path, []Node{}, printFiles)
+	nodes, err := readDir(path, []Node{}, printFiles)
 	printDir(out, nodes, []string{})
 
 	return err
